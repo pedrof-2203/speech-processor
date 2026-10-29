@@ -20,8 +20,12 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation platform("org.springframework.ai:spring-ai-bom:2.0.0-M4")
+    implementation "org.springframework.ai:spring-ai-starter-model-openai"
 }
 
 tasks.named('test') {
