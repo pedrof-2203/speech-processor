@@ -4,7 +4,9 @@ import dio.speech.application.input.SaveTransactionInput;
 import dio.speech.application.output.TransactionOutput;
 import dio.speech.domain.Transaction;
 import dio.speech.domain.TransactionRepository;
+import org.springframework.stereotype.Service;
 
+@Service
 public class SaveTransactionUseCase {
     private final TransactionRepository repository;
 
