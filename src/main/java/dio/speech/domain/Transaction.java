@@ -1,10 +1,12 @@
 package dio.speech.domain;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@AllArgsConstructor
 public class Transaction {
     private TransactionId id;
     private String description;
