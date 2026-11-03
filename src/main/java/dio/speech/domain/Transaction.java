@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -12,6 +14,8 @@ public class Transaction {
     private String description;
     private long amount;
     private Category category;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public Transaction(String description, long amount, Category category) {
         this.id = new TransactionId();

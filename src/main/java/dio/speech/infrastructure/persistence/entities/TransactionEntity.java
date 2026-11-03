@@ -10,7 +10,10 @@ import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -20,17 +23,27 @@ import java.util.UUID;
 public class TransactionEntity {
     @Id
     private UUID id;
+
     private String description;
     private long amount;
+
     @Enumerated(EnumType.STRING)
     private Category category;
+
+    @CreationTimestamp
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    private Instant updatedAt;
 
     public static TransactionEntity from(Transaction transaction) {
         return new TransactionEntity(
                 transaction.getId().uuid(),
                 transaction.getDescription(),
                 transaction.getAmount(),
-                transaction.getCategory()
+                transaction.getCategory(),
+                transaction.getCreatedAt(),
+                transaction.getUpdatedAt()
         );
     }
 
@@ -39,7 +52,9 @@ public class TransactionEntity {
                 new TransactionId(this.id),
                 this.description,
                 this.amount,
-                this.category
+                this.category,
+                this.createdAt,
+                this.updatedAt
         );
     }
 }
