@@ -4,6 +4,8 @@ import dio.speech.domain.Category;
 import dio.speech.domain.Transaction;
 import dio.speech.domain.TransactionId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,8 +22,8 @@ public class TransactionEntity {
     private UUID id;
     private String description;
     private long amount;
+    @Enumerated(EnumType.STRING)
     private Category category;
-
 
     public static TransactionEntity from(Transaction transaction) {
         return new TransactionEntity(
