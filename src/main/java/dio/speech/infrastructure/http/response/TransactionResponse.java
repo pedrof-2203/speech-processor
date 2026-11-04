@@ -1,17 +1,28 @@
 package dio.speech.infrastructure.http.response;
 
-import dio.speech.application.output.TransactionOutput;
+import dio.speech.domain.Transaction;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.time.Instant;
 
-public record TransactionResponse(String id, String category, String description, double value) {
-    public static TransactionResponse from(TransactionOutput transactionOutput) {
+public record TransactionResponse(
+        String id,
+        String input,
+        String output,
+        BigDecimal amount,
+        String category,
+        Instant createdAt,
+        Instant updatedAt
+) {
+    public static TransactionResponse from(Transaction transaction) {
         return new TransactionResponse(
-                transactionOutput.id(),
-                transactionOutput.category(),
-                transactionOutput.description(),
-                BigDecimal.valueOf(transactionOutput.value()).setScale(2, RoundingMode.HALF_UP).doubleValue()
+                transaction.getId().uuid().toString(),
+                transaction.getInput(),
+                transaction.getOutput(),
+                transaction.getAmount(),
+                transaction.getCategory().toString(),
+                transaction.getCreatedAt(),
+                transaction.getUpdatedAt()
         );
     }
 }
