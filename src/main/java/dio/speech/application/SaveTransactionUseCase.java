@@ -18,7 +18,12 @@ public class SaveTransactionUseCase {
     @Tool(name = "save-transaction", description = "Persists a new financial transaction")
     public TransactionOutput execute(SaveTransactionInput input) {
         var newTransaction = repository.save(
-                new Transaction(input.description(), input.amount(), input.category())
+                new Transaction(
+                        input.description(),
+                        input.amount(),
+                        input.category(),
+                        input.response()
+                )
         );
         return TransactionOutput.from(newTransaction);
     }

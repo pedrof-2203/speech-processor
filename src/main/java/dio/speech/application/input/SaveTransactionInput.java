@@ -9,6 +9,8 @@ public record SaveTransactionInput(
         @ToolParam(description = "Expense amount in cents")
         long amount,
         @ToolParam(description = "Expense category")
-        Category category
+        Category category,
+        @ToolParam(description = "The model response")
+        String response
 ) {
 }

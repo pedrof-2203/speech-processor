@@ -1,3 +1,4 @@
+
 package dio.speech.infrastructure.http;
 
 import dio.speech.application.GetTransactionsByCategoryUseCase;
@@ -11,18 +12,22 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.*;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
+
     private final SaveTransactionUseCase saveTransactionUseCase;
     private final GetTransactionsByCategoryUseCase getTransactionsByCategoryUseCase;
 
@@ -35,11 +40,15 @@ public class TransactionController {
             GetTransactionsByCategoryUseCase getTransactionsByCategoryUseCase,
             TranscriptionModel transcriptionModel,
             @Value("classpath:/prompts/system-message.st") Resource systemPrompt,
-            ChatClient.Builder chatClientBuilder, TextToSpeechModel textToSpeechModel) throws IOException {
+            ChatClient.Builder chatClientBuilder,
+            TextToSpeechModel textToSpeechModel
+    ) throws IOException {
+
         this.saveTransactionUseCase = saveTransactionUseCase;
         this.getTransactionsByCategoryUseCase = getTransactionsByCategoryUseCase;
         this.transcriptionModel = transcriptionModel;
         this.textToSpeechModel = textToSpeechModel;
+
         this.chatClient = chatClientBuilder
                 .defaultSystem(systemPrompt.getContentAsString(StandardCharsets.UTF_8))
                 .defaultTools(saveTransactionUseCase, getTransactionsByCategoryUseCase)
@@ -49,36 +58,48 @@ public class TransactionController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TransactionResponse create(@RequestBody TransactionRequest request) {
-        var newTransaction = saveTransactionUseCase.execute(request.toInput());
-        return TransactionResponse.from(newTransaction);
+        var transaction = saveTransactionUseCase.execute(request.toInput());
+
+        return TransactionResponse.from(transaction);
     }
 
     @GetMapping("/{category}")
-    @ResponseStatus(HttpStatus.OK)
     public List<TransactionResponse> getByCategory(@PathVariable Category category) {
-        return getTransactionsByCategoryUseCase
-                .execute(category)
+        return getTransactionsByCategoryUseCase.execute(category)
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();
     }
 
-    @PostMapping(value = "/ai", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = "audio/wav")
-    public ResponseEntity<Resource> transcribe(@RequestParam("file") MultipartFile multipartFile) {
-        var userPrompt = transcriptionModel.transcribe(multipartFile.getResource());
+    @PostMapping(
+            value = "/ai",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = "audio/wav"
+    )
+    public ResponseEntity<Resource> transcribe(
+            @RequestParam("file") MultipartFile file
+    ) {
+        var transcription = transcriptionModel.transcribe(file.getResource());
 
-        var result = chatClient.prompt().user(userPrompt).call().content();
+        var response = chatClient.prompt()
+                .user(transcription)
+                .call()
+                .content();
 
-        assert result != null;
-        byte[] audio = this.textToSpeechModel.call(result);
+        if (response == null || response.isBlank()) {
+            return ResponseEntity.noContent().build();
+        }
 
+        var audio = textToSpeechModel.call(response);
         var resource = new ByteArrayResource(audio);
 
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename("audio.wav").build().toString())
-                .body(resource);
+        var contentDisposition = ContentDisposition.attachment()
+                .filename("audio.wav")
+                .build();
 
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .contentType(MediaType.parseMediaType("audio/wav"))
+                .body(resource);
     }
 }
