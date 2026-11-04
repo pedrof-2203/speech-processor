@@ -1,105 +1,90 @@
-
 package dio.speech.infrastructure.http;
 
-import dio.speech.application.GetTransactionsByCategoryUseCase;
-import dio.speech.application.SaveTransactionUseCase;
+import dio.speech.application.usecase.transaction.*;
 import dio.speech.domain.Category;
 import dio.speech.infrastructure.http.request.TransactionRequest;
 import dio.speech.infrastructure.http.response.TransactionResponse;
-import org.springframework.ai.audio.transcription.TranscriptionModel;
-import org.springframework.ai.audio.tts.TextToSpeechModel;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
 
-    private final SaveTransactionUseCase saveTransactionUseCase;
+    private final GetTransactionsUseCase getTransactionsUseCase;
+    private final CreateTransactionUseCase createTransactionUseCase;
+    private final GetTransactionByIdUseCase getTransactionByIdUseCase;
     private final GetTransactionsByCategoryUseCase getTransactionsByCategoryUseCase;
-
-    private final TranscriptionModel transcriptionModel;
-    private final ChatClient chatClient;
-    private final TextToSpeechModel textToSpeechModel;
+    private final UpdateTransactionUseCase updateTransactionUseCase;
+    private final DeleteTransactionUseCase deleteTransactionUseCase;
 
     public TransactionController(
-            SaveTransactionUseCase saveTransactionUseCase,
+            GetTransactionsUseCase getTransactionsUseCase,
+            CreateTransactionUseCase createTransactionUseCase,
+            GetTransactionByIdUseCase getTransactionByIdUseCase,
             GetTransactionsByCategoryUseCase getTransactionsByCategoryUseCase,
-            TranscriptionModel transcriptionModel,
-            @Value("classpath:/prompts/system-message.st") Resource systemPrompt,
-            ChatClient.Builder chatClientBuilder,
-            TextToSpeechModel textToSpeechModel
-    ) throws IOException {
-
-        this.saveTransactionUseCase = saveTransactionUseCase;
+            UpdateTransactionUseCase updateTransactionUseCase,
+            DeleteTransactionUseCase deleteTransactionUseCase
+    ) {
+        this.getTransactionsUseCase = getTransactionsUseCase;
+        this.createTransactionUseCase = createTransactionUseCase;
+        this.getTransactionByIdUseCase = getTransactionByIdUseCase;
         this.getTransactionsByCategoryUseCase = getTransactionsByCategoryUseCase;
-        this.transcriptionModel = transcriptionModel;
-        this.textToSpeechModel = textToSpeechModel;
-
-        this.chatClient = chatClientBuilder
-                .defaultSystem(systemPrompt.getContentAsString(StandardCharsets.UTF_8))
-                .defaultTools(saveTransactionUseCase, getTransactionsByCategoryUseCase)
-                .build();
+        this.updateTransactionUseCase = updateTransactionUseCase;
+        this.deleteTransactionUseCase = deleteTransactionUseCase;
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public TransactionResponse create(@RequestBody TransactionRequest request) {
-        var transaction = saveTransactionUseCase.execute(request.toInput());
+    @GetMapping
+    public List<TransactionResponse> findAll(
+            @RequestParam(required = false) Category category
+    ) {
+        var transactions = category != null
+                ? getTransactionsByCategoryUseCase.execute(category)
+                : getTransactionsUseCase.execute();
 
-        return TransactionResponse.from(transaction);
-    }
-
-    @GetMapping("/{category}")
-    public List<TransactionResponse> getByCategory(@PathVariable Category category) {
-        return getTransactionsByCategoryUseCase.execute(category)
-                .stream()
+        return transactions.stream()
                 .map(TransactionResponse::from)
                 .toList();
     }
 
-    @PostMapping(
-            value = "/ai",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = "audio/wav"
-    )
-    public ResponseEntity<Resource> transcribe(
-            @RequestParam("file") MultipartFile file
+    @GetMapping("/{uuid}")
+    public ResponseEntity<TransactionResponse> findById(
+            @PathVariable UUID uuid
     ) {
-        var transcription = transcriptionModel.transcribe(file.getResource());
+        return getTransactionByIdUseCase.execute(uuid)
+                .map(TransactionResponse::from)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 
-        var response = chatClient.prompt()
-                .user(transcription)
-                .call()
-                .content();
+    @PostMapping
+    public ResponseEntity<Void> create(
+            @Valid @RequestBody TransactionRequest request
+    ) {
+        var transactionId = createTransactionUseCase.execute(
+                request.toCreateInput()
+        );
+        var uri = URI.create("/transactions/" + transactionId);
+        return ResponseEntity.created(uri).build();
+    }
 
-        if (response == null || response.isBlank()) {
-            return ResponseEntity.noContent().build();
-        }
+    @PutMapping("/{uuid}")
+    public ResponseEntity<Void> update(
+            @PathVariable UUID uuid,
+            @Valid @RequestBody TransactionRequest request
+    ) {
+        updateTransactionUseCase.execute(uuid, request.toUpdateInput());
+        return ResponseEntity.noContent().build();
+    }
 
-        var audio = textToSpeechModel.call(response);
-        var resource = new ByteArrayResource(audio);
-
-        var contentDisposition = ContentDisposition.attachment()
-                .filename("audio.wav")
-                .build();
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
-                .contentType(MediaType.parseMediaType("audio/wav"))
-                .body(resource);
+    @DeleteMapping("/{uuid}")
+    public ResponseEntity<Void> delete(@PathVariable UUID uuid) {
+        deleteTransactionUseCase.execute(uuid);
+        return ResponseEntity.noContent().build();
     }
 }
