@@ -7,6 +7,7 @@ import dio.speech.domain.TransactionRepository;
 import dio.speech.infrastructure.persistence.mapper.TransactionMapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,10 +30,18 @@ public class JpaTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public Transaction save(Transaction transaction) {
+    public List<Transaction> findAllByPeriod(Instant from, Instant to) {
+        return repository.findAllByPeriod(from, to)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public void save(Transaction transaction) {
          var entity = mapper.toEntity(transaction);
          var dbTransaction = repository.save(entity);
-         return mapper.toDomain(dbTransaction);
+        mapper.toDomain(dbTransaction);
     }
 
     @Override

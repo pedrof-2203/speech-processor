@@ -15,7 +15,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
-
     private final GetTransactionsUseCase getTransactionsUseCase;
     private final CreateTransactionUseCase createTransactionUseCase;
     private final GetTransactionByIdUseCase getTransactionByIdUseCase;
