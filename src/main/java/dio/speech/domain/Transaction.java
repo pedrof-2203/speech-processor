@@ -57,7 +57,7 @@ public class Transaction {
         this.amount = validateAmount(amount);
         this.category = Objects.requireNonNull(category, "Category cannot be null");
         this.type = Objects.requireNonNull(type, "Type cannot be null");
-        this.paymentMethod = paymentMethod;
+        this.paymentMethod = type == Type.INCOME ? null : paymentMethod;
         this.createdAt = Objects.requireNonNull(createdAt, "Creation date cannot be null");
         this.updatedAt = updatedAt;
     }

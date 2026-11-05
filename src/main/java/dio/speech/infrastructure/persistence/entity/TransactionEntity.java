@@ -48,7 +48,6 @@ public class TransactionEntity {
     @Column(nullable = false)
     private Type type;
 
-    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = true)
     private PaymentMethod paymentMethod;
