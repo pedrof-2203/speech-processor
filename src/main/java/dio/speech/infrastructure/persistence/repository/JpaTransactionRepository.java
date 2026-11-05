@@ -1,10 +1,12 @@
 package dio.speech.infrastructure.persistence.repository;
 
+import dio.speech.application.output.PageResult;
 import dio.speech.domain.Category;
 import dio.speech.domain.Transaction;
 import dio.speech.domain.TransactionId;
 import dio.speech.domain.TransactionRepository;
 import dio.speech.infrastructure.persistence.mapper.TransactionMapper;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -30,6 +32,26 @@ public class JpaTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public PageResult<Transaction> findAllPaginated(int page, int size) {
+        var pageable = PageRequest.of(page, size);
+
+        var result = repository.findAll(pageable);
+
+        var transactions = result.getContent()
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+
+        return new PageResult<>(
+                transactions,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+    }
+
+    @Override
     public List<Transaction> findAllByPeriod(Instant from, Instant to) {
         return repository.findAllByPeriod(from, to)
                 .stream()
@@ -51,11 +73,23 @@ public class JpaTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public List<Transaction> findByCategory(Category category) {
-        return repository.findByCategory(category)
+    public PageResult<Transaction> findByCategory(Category category, int page, int size) {
+        var pageable = PageRequest.of(page, size);
+
+        var result = repository.findByCategory(category, pageable);
+
+        var transactions = result.getContent()
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
+
+        return new PageResult<>(
+                transactions,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     @Override

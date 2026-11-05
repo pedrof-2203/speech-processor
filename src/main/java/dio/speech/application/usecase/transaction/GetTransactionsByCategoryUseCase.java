@@ -1,13 +1,12 @@
 package dio.speech.application.usecase.transaction;
 
+import dio.speech.application.output.PageResult;
 import dio.speech.domain.Category;
 import dio.speech.domain.Transaction;
 import dio.speech.domain.TransactionRepository;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class GetTransactionsByCategoryUseCase {
@@ -18,7 +17,11 @@ public class GetTransactionsByCategoryUseCase {
     }
 
     @Tool(name = "get-transactions-by-category", description = "Lists financial transactions by category.")
-    public List<Transaction> execute(@ToolParam(description = "A transaction's category") Category category) {
-        return repository.findByCategory(category);
+    public PageResult<Transaction> execute(
+            @ToolParam(description = "A transaction's category") Category category,
+            int page,
+            int size
+    ) {
+        return repository.findByCategory(category, page, size);
     }
 }

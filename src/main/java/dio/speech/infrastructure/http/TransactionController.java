@@ -1,5 +1,6 @@
 package dio.speech.infrastructure.http;
 
+import dio.speech.application.output.PageResult;
 import dio.speech.application.usecase.transaction.*;
 import dio.speech.domain.Category;
 import dio.speech.infrastructure.http.request.TransactionRequest;
@@ -9,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -39,16 +39,27 @@ public class TransactionController {
     }
 
     @GetMapping
-    public List<TransactionResponse> findAll(
-            @RequestParam(required = false) Category category
+    public PageResult<TransactionResponse> findAll(
+            @RequestParam(required = false) Category category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        var transactions = category != null
-                ? getTransactionsByCategoryUseCase.execute(category)
-                : getTransactionsUseCase.execute();
+        var result = category != null
+                ? getTransactionsByCategoryUseCase.execute(category, page, size)
+                : getTransactionsUseCase.execute(page, size);
 
-        return transactions.stream()
+        var transactions = result.content()
+                .stream()
                 .map(TransactionResponse::from)
                 .toList();
+
+        return new PageResult<>(
+                transactions,
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
     }
 
     @GetMapping("/{uuid}")
