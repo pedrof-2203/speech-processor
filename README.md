@@ -18,6 +18,7 @@ API RESTful desenvolvida em Java e Spring Boot para processamento inteligente e 
   - [2. Gestão de Transações](#2-gestão-de-transações)
   - [3. Relatórios Financeiros](#3-relatórios-financeiros)
   - [Valores de Domínio (Enums)](#valores-de-domínio-enums)
+- [Tratamento de Erros e Resiliência](#tratamento-de-erros-e-resiliência)
 - [Configuração e Execução](#configuração-e-execução)
   - [Pré-requisitos](#pré-requisitos)
   - [Clonagem](#clonagem)
@@ -179,7 +180,9 @@ Processa um arquivo de áudio gravado, transcreve a fala, extrai as informaçõe
 - **Respostas**:
   - `200 OK`: Áudio binário WAV contendo a síntese de voz de confirmação.
   - `204 No Content`: Transação não pôde ser interpretada ou gerou resposta vazia.
-  - `500 Internal Server Error`: Falha de comunicação com o provedor de IA ou processamento.
+  - `400 Bad Request`: Arquivo de áudio ausente ou vazio (`INVALID_AUDIO_FILE`).
+  - `502 Bad Gateway`: Falha de comunicação ou inferência nos serviços de IA (`EXTERNAL_SERVICE_ERROR`).
+  - `500 Internal Server Error`: Erro interno inesperado do servidor.
 
 **Exemplo de requisição (cURL):**
 ```bash
@@ -295,7 +298,7 @@ Atualiza o valor monetário e/ou a categoria de uma transação existente.
 - **Respostas**:
   - `204 No Content`: Transação atualizada com sucesso.
   - `400 Bad Request`: Dados inválidos.
-  - `500 Internal Server Error`: Transação não localizada (`RuntimeException: Transaction not found`).
+  - `404 Not Found`: Transação não localizada com o UUID informado (`RESOURCE_NOT_FOUND`).
 
 **Exemplo de requisição:**
 ```bash
@@ -333,7 +336,7 @@ Calcula o consolidado financeiro contendo total de receitas (`income`), total de
   - `to` (*string formato YYYY-MM-DD*, opcional): Data final do período (inclusive).
 - **Respostas**:
   - `200 OK`: Relatório financeiro consolidado.
-  - `400 Bad Request` / `500`: Caso `from` seja posterior a `to`.
+  - `400 Bad Request`: Caso `from` seja posterior a `to` (`INVALID_DATE_RANGE`) ou parâmetro de data com formato inválido (`INVALID_PARAMETER_TYPE`).
 
 **Exemplo de requisição:**
 ```bash
@@ -359,6 +362,77 @@ curl -X GET "http://localhost:8080/reports?from=2026-11-01&to=2026-11-30"
 | **`Type`** | `INCOME`, `EXPENSE` | Define se é receita ou despesa |
 | **`PaymentMethod`** | `CASH`, `CREDIT`, `DEBIT` | Meio de pagamento. Se `Type == INCOME`, o valor é forçado para `null` |
 | **`Category`** | `GROCERIES`, `PHARMA`, `AUTO`, `TRANSPORTATION`, `HOUSING`, `UTILITIES`, `FOOD_AND_DINING`, `ENTERTAINMENT`, `SHOPPING`, `HEALTH`, `EDUCATION`, `PERSONAL_CARE`, `SUBSCRIPTIONS`, `TRAVEL`, `PETS`, `CLOTHING`, `TECHNOLOGY`, `INSURANCE`, `TAXES`, `INVESTMENTS`, `INCOME`, `OTHER` | Categoria contábil/financeira da transação |
+
+---
+
+## Tratamento de Erros e Resiliência
+
+A API adota um padrão rigoroso e consistente para comunicação de erros, garantindo transparência ao cliente, rastreabilidade operacional e proteção contra vazamento de dados sensíveis em produção.
+
+### 1. Formato Padrão de Resposta de Erro (`ApiErrorResponse`)
+
+Todas as respostas de erro retornam um JSON padronizado com cabeçalho `Content-Type: application/json` e status HTTP semântico:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Validation failed for one or more fields",
+    "status": 400,
+    "timestamp": "2026-11-05T19:55:00.123Z",
+    "path": "/transactions",
+    "requestId": "550e8400-e29b-41d4-a716-446655440000",
+    "details": [
+      {
+        "field": "amount",
+        "rejectedValue": -10,
+        "message": "Amount must be greater than zero"
+      }
+    ]
+  }
+}
+```
+
+#### Campos do Objeto de Erro:
+| Campo | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `success` | `boolean` | Sempre `false` em respostas de falha, simplificando validações em clientes e SDKs. |
+| `error.code` | `string` | Identificador semântico da categoria de erro (ex: `RESOURCE_NOT_FOUND`, `VALIDATION_FAILED`). |
+| `error.message` | `string` | Mensagem clara, amigável e segura descrevendo o erro. |
+| `error.status` | `integer` | Código de status HTTP equivalente ao cabeçalho da resposta. |
+| `error.timestamp` | `string (ISO-8601)` | Momento exato em UTC em que o erro foi gerado. |
+| `error.path` | `string` | URI do endpoint requisitado. |
+| `error.requestId` | `string (UUID)` | Identificador exclusivo da requisição para rastreamento nos logs do servidor. |
+| `error.details` | `array` *(opcional)* | Lista detalhada contendo `field`, `rejectedValue` e `message` para erros de validação sintática. |
+
+### 2. Mapeamento de Códigos de Status HTTP
+
+| Status HTTP | Código Semântico (`code`) | Causa Principal |
+| :--- | :--- | :--- |
+| `400 Bad Request` | `VALIDATION_FAILED` | Erro de validação de campos (Bean Validation) |
+| `400 Bad Request` | `INVALID_PARAMETER_TYPE` | Tipo inválido em Path Variable (ex: UUID inválido) ou Query Param |
+| `400 Bad Request` | `MALFORMED_REQUEST_BODY` | JSON malformado ou payload sintaticamente inválido |
+| `400 Bad Request` | `INVALID_AUDIO_FILE` | Arquivo de áudio ausente ou vazio |
+| `400 Bad Request` | `INVALID_DATE_RANGE` | Data inicial (`from`) posterior à data final (`to`) |
+| `400 Bad Request` | `MISSING_PARAMETER` | Parâmetro obrigatório da requisição não informado |
+| `404 Not Found` | `RESOURCE_NOT_FOUND` | Recurso não localizado (ex: transação inexistente) |
+| `405 Method Not Allowed` | `METHOD_NOT_ALLOWED` | Método HTTP não suportado pelo endpoint (ex: `PATCH`) |
+| `413 Payload Too Large` | `PAYLOAD_TOO_LARGE` | Tamanho do arquivo enviado excede o limite configurado |
+| `415 Unsupported Media Type` | `UNSUPPORTED_MEDIA_TYPE` | Content-Type não aceito pelo endpoint |
+| `502 Bad Gateway` | `EXTERNAL_SERVICE_ERROR` | Falha controlada de comunicação com serviços de IA (Groq/OpenAI) |
+| `500 Internal Server Error` | `INTERNAL_SERVER_ERROR` | Exceção inesperada de servidor (mascarada para o cliente) |
+
+### 3. Rastreabilidade e Observabilidade (`X-Request-Id`)
+
+- Todas as requisições recebem (ou geram) um `X-Request-Id` através do `RequestIdFilter`.
+- O `requestId` é injetado no `MDC` (Mapped Diagnostic Context) do SLF4J, garantindo que todas as mensagens de log da requisição estejam correlacionadas.
+- O identificador é retornado no cabeçalho de resposta `X-Request-Id` e no payload do erro (`error.requestId`).
+
+### 4. Segurança e Sanitização de Dados Sensíveis
+
+- **Proteção em Produção**: Detalhes de infraestrutura, `stack traces`, consultas SQL e mensagens brutas de bancos de dados **nunca** são expostos ao cliente final.
+- Exceções inesperadas (status 5xx) retornam uma mensagem genérica e segura instruindo o cliente a entrar em contato com o suporte informando o `requestId`. O stack trace completo e metadados contextuais são registrados exclusivamente nos logs do servidor em nível `ERROR`.
 
 ---
 
