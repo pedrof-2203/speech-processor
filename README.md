@@ -1,6 +1,6 @@
 # Speech Processor
 
-API RESTful desenvolvida em Java e Spring Boot para processamento inteligente e gerenciamento de transações financeiras pessoais a partir de comandos de voz (STT/TTS) e texto, utilizando inteligência artificial generativa com Spring AI e a API da Groq.
+API RESTful desenvolvida em Java e Spring Boot para processamento inteligente e gerenciamento de transações financeiras pessoais a partir de comandos de voz (STT/TTS) e texto, utilizando inteligência artificial generativa com Spring AI e a API da Groq. Observação: o Groq não disponibiliza modelos de voz em português, então os recursos que envolvem interação por voz funcionam melhor em inglês. Áudios de teste foram incluídos no diretório "test/resources/audio".
 
 ---
 
