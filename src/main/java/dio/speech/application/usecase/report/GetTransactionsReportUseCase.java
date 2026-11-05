@@ -4,6 +4,7 @@ import dio.speech.application.output.ReportOutput;
 import dio.speech.domain.Transaction;
 import dio.speech.domain.TransactionRepository;
 import dio.speech.domain.Type;
+import dio.speech.shared.exception.BusinessRuleException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -31,7 +32,8 @@ public class GetTransactionsReportUseCase {
                 : null;
 
         if (from != null && to != null && from.isAfter(to)) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
+                    "INVALID_DATE_RANGE",
                     "'from' cannot be after 'to'"
             );
         }

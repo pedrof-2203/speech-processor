@@ -3,7 +3,9 @@ package dio.speech.infrastructure.http;
 import dio.speech.application.usecase.transaction.*;
 import dio.speech.domain.Category;
 import dio.speech.infrastructure.http.request.TransactionRequest;
+import dio.speech.infrastructure.http.request.UpdateTransactionRequest;
 import dio.speech.infrastructure.http.response.TransactionResponse;
+import dio.speech.shared.exception.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -58,7 +60,7 @@ public class TransactionController {
         return getTransactionByIdUseCase.execute(uuid)
                 .map(TransactionResponse::from)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction", uuid));
     }
 
     @PostMapping
@@ -75,9 +77,9 @@ public class TransactionController {
     @PutMapping("/{uuid}")
     public ResponseEntity<Void> update(
             @PathVariable UUID uuid,
-            @Valid @RequestBody TransactionRequest request
+            @Valid @RequestBody UpdateTransactionRequest request
     ) {
-        updateTransactionUseCase.execute(uuid, request.toUpdateInput());
+        updateTransactionUseCase.execute(uuid, request.toInput());
         return ResponseEntity.noContent().build();
     }
 
