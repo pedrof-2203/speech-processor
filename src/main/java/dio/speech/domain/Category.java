@@ -3,5 +3,24 @@ package dio.speech.domain;
 public enum Category {
     GROCERIES,
     PHARMA,
-    AUTO
+    AUTO,
+    TRANSPORTATION,
+    HOUSING,
+    UTILITIES,
+    FOOD_AND_DINING,
+    ENTERTAINMENT,
+    SHOPPING,
+    HEALTH,
+    EDUCATION,
+    PERSONAL_CARE,
+    SUBSCRIPTIONS,
+    TRAVEL,
+    PETS,
+    CLOTHING,
+    TECHNOLOGY,
+    INSURANCE,
+    TAXES,
+    INVESTMENTS,
+    INCOME,
+    OTHER
 }
