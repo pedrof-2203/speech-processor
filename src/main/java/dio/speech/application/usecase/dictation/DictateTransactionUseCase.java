@@ -2,6 +2,10 @@ package dio.speech.application.usecase.dictation;
 
 import dio.speech.application.input.CreateTransactionInput;
 import dio.speech.application.usecase.transaction.CreateTransactionUseCase;
+import dio.speech.shared.exception.AppException;
+import dio.speech.shared.exception.ExternalServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.audio.transcription.TranscriptionModel;
 import org.springframework.ai.audio.tts.TextToSpeechModel;
 import org.springframework.ai.chat.client.ChatClient;
@@ -12,6 +16,8 @@ import java.util.Optional;
 
 @Service
 public class DictateTransactionUseCase {
+    private static final Logger log = LoggerFactory.getLogger(DictateTransactionUseCase.class);
+
     private static final String SYSTEM_PROMPT = """
             You are a financial assistant responsible for interpreting voice-reported financial transactions.
             
@@ -46,26 +52,33 @@ public class DictateTransactionUseCase {
     }
 
     public Optional<byte[]> execute(Resource audio) {
-        var transcription = transcriptionModel.transcribe(audio);
+        try {
+            var transcription = transcriptionModel.transcribe(audio);
 
-        var transaction = chatClient.prompt()
-                .system(SYSTEM_PROMPT)
-                .user(transcription)
-                .call()
-                .entity(CreateTransactionInput.class);
+            var transaction = chatClient.prompt()
+                    .system(SYSTEM_PROMPT)
+                    .user(transcription)
+                    .call()
+                    .entity(CreateTransactionInput.class);
 
-        if (transaction == null) {
-            return Optional.empty();
+            if (transaction == null) {
+                return Optional.empty();
+            }
+
+            createTransactionUseCase.execute(transaction);
+
+            if (transaction.output() == null || transaction.output().isBlank()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(
+                    textToSpeechModel.call(transaction.output())
+            );
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("AI service failure while processing voice dictation: {}", e.getMessage(), e);
+            throw new ExternalServiceException("Failed to process transaction using AI model: " + e.getMessage(), e);
         }
-
-        createTransactionUseCase.execute(transaction);
-
-        if (transaction.output() == null || transaction.output().isBlank()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(
-                textToSpeechModel.call(transaction.output())
-        );
     }
 }
