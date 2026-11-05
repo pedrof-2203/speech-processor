@@ -1,6 +1,7 @@
 package dio.speech.application.input;
 
 import dio.speech.domain.Category;
+import dio.speech.domain.Type;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.math.BigDecimal;
@@ -16,6 +17,9 @@ public record CreateTransactionInput(
         BigDecimal amount,
 
         @ToolParam(description = "The transaction's category.")
-        Category category
+        Category category,
+
+        @ToolParam(description = "The type of the transaction.")
+        Type type
 ) {
 }

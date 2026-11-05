@@ -14,6 +14,7 @@ public class TransactionMapper {
                 transaction.getOutput(),
                 transaction.getAmount(),
                 transaction.getCategory(),
+                transaction.getType(),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt()
         );
@@ -26,6 +27,7 @@ public class TransactionMapper {
                 entity.getOutput(),
                 entity.getAmount(),
                 entity.getCategory(),
+                entity.getType(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

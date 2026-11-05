@@ -1,6 +1,7 @@
 package dio.speech.infrastructure.persistence.entity;
 
 import dio.speech.domain.Category;
+import dio.speech.domain.Type;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -40,6 +41,11 @@ public class TransactionEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private Category category;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Type type;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
