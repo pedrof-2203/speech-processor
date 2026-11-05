@@ -23,7 +23,8 @@ public class CreateTransactionUseCase {
                 input.output(),
                 input.amount(),
                 input.category(),
-                input.type()
+                input.type(),
+                input.paymentMethod()
         );
         this.repository.save(transaction);
         return transaction.getId().uuid();

@@ -15,6 +15,7 @@ public class Transaction {
     private final BigDecimal amount;
     private final Category category;
     private final Type type;
+    private final PaymentMethod paymentMethod;
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -23,7 +24,8 @@ public class Transaction {
             String output,
             BigDecimal amount,
             Category category,
-            Type type
+            Type type,
+            PaymentMethod paymentMethod
     ) {
         this(
                 new TransactionId(),
@@ -32,6 +34,7 @@ public class Transaction {
                 amount,
                 category,
                 type,
+                paymentMethod,
                 Instant.now(),
                 null
         );
@@ -44,6 +47,7 @@ public class Transaction {
             BigDecimal amount,
             Category category,
             Type type,
+            PaymentMethod paymentMethod,
             Instant createdAt,
             Instant updatedAt
     ) {
@@ -53,6 +57,7 @@ public class Transaction {
         this.amount = validateAmount(amount);
         this.category = Objects.requireNonNull(category, "Category cannot be null");
         this.type = Objects.requireNonNull(type, "Type cannot be null");
+        this.paymentMethod = paymentMethod;
         this.createdAt = Objects.requireNonNull(createdAt, "Creation date cannot be null");
         this.updatedAt = updatedAt;
     }
@@ -65,6 +70,7 @@ public class Transaction {
                 amount != null ? amount : this.amount,
                 category != null ? category : this.category,
                 this.type,
+                this.paymentMethod,
                 this.createdAt,
                 Instant.now()
         );

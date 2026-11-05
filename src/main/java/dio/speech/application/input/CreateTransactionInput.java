@@ -1,6 +1,7 @@
 package dio.speech.application.input;
 
 import dio.speech.domain.Category;
+import dio.speech.domain.PaymentMethod;
 import dio.speech.domain.Type;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -20,6 +21,9 @@ public record CreateTransactionInput(
         Category category,
 
         @ToolParam(description = "The type of the transaction.")
-        Type type
+        Type type,
+
+        @ToolParam(description = "The payment method of the transaction.")
+        PaymentMethod paymentMethod
 ) {
 }
