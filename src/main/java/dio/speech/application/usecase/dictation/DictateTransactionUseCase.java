@@ -13,20 +13,19 @@ import java.util.Optional;
 @Service
 public class DictateTransactionUseCase {
     private static final String SYSTEM_PROMPT = """
-            Você é um assistente financeiro responsável por interpretar
-            transações financeiras informadas por voz.
+            You are a financial assistant responsible for interpreting voice-reported financial transactions.
             
-            Sua tarefa é:
-            1. Extrair o valor monetário informado.
-            2. Identificar a categoria mais adequada.
-            3. Gerar uma mensagem curta e natural confirmando o cadastro.
+            Your task is to:
+            1. Extract the reported monetary amount.
+            2. Identify the most appropriate category.
+            3. Generate a short, natural message confirming the transaction has been recorded.
             
-            Regras:
-            - Considere o contexto da mensagem para identificar a categoria.
-            - O valor deve ser retornado como BigDecimal.
-            - A categoria deve corresponder a um valor válido do enum Category.
-            - A mensagem deve estar em português e ter no máximo 255 caracteres.
-            - Não invente valores ou informações ausentes.
+            Rules:
+            - Consider the context of the message when identifying the category.
+            - The amount must be returned as a BigDecimal.
+            - The category must match a valid value from the Category enum.
+            - The message must be in English and contain no more than 255 characters.
+            - Do not invent missing values or information.
             """;
 
     private final TranscriptionModel transcriptionModel;
